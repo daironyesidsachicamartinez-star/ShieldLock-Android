@@ -167,33 +167,37 @@ SectionTitle(
 
         LazyColumn {
 
-            items(
+    items(
 
-    apps.filter {
+        apps.filter {
 
-        it.name.contains(
-            searchText,
-            ignoreCase = true
-        )
+            it.name.contains(
+                searchText,
+                ignoreCase = true
+            )
 
-    }
+        }
 
-) { app ->
+    ) { app ->
 
-                AppItem(
-    app = app,
-    checked = app.protected,
-    onCheckedChange = { checked ->
+        AppItem(
+            app = app,
+            checked = app.protected,
+            onCheckedChange = { checked ->
 
-        protectedPackages =
-            if (checked) {
-                protectedPackages + app.packageName
-            } else {
-                protectedPackages - app.packageName
+                protectedPackages =
+                    if (checked) {
+                        protectedPackages + app.packageName
+                    } else {
+                        protectedPackages - app.packageName
+                    }
+
+                preferencesManager.saveProtectedApps(
+                    protectedPackages
+                )
             }
-
-        preferencesManager.saveProtectedApps(
-            protectedPackages
         )
     }
-)
+        }
+}
+}

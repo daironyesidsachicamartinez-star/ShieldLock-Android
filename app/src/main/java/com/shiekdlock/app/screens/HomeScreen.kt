@@ -52,6 +52,7 @@ import com.shiekdlock.app.ui.components.SectionTitle
 
 import com.shiekdlock.app.data.AppRepository
 
+import com.shiekdlock.app.viewmodel.HomeViewModel
 
 fun drawableToBitmap(
     drawable: android.graphics.drawable.Drawable
@@ -83,6 +84,10 @@ fun HomeScreen(
 ) {
 
     val context = LocalContext.current
+
+    val viewModel = remember {
+    HomeViewModel()
+}
 
     val preferencesManager = remember {
         PreferencesManager(context)

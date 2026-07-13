@@ -6,11 +6,21 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import com.shiekdlock.app.data.PreferencesManager
 
+import com.shiekdlock.app.accessibility.AppBlocker
+
+import com.shiekdlock.app.accessibility.AppLauncher
+
 class ShieldAccessibilityService :
     AccessibilityService() {
 
     private lateinit var preferencesManager:
         PreferencesManager
+
+    private lateinit var appBlocker:
+    AppBlocker
+
+    private lateinit var appLauncher:
+    AppLauncher
 
     /*
      * Última aplicación detectada.
@@ -31,6 +41,14 @@ class ShieldAccessibilityService :
             PreferencesManager(
                 applicationContext
             )
+
+            appBlocker =
+    AppBlocker(
+        preferencesManager
+    )
+
+    appLauncher =
+    AppLauncher()
 
         Log.d(
             "ShieldLock",
@@ -77,30 +95,17 @@ private fun handlePackageChange(
         return
     }
 
+    
+
     if (
+    isSystemPackage(packageName)
+) {
 
-        packageName ==
-        "com.sec.android.app.launcher"
+    resetState()
 
-        ||
+    return
 
-        packageName ==
-        "com.android.systemui"
-
-    ) {
-
-        lastPackage = ""
-
-        isLaunchingLock = false
-
-        Log.d(
-            "ShieldLock",
-            "Usuario salió de la aplicación"
-        )
-
-        return
-
-    }
+}
 
     if (
         packageName == lastPackage
@@ -115,16 +120,13 @@ private fun handlePackageChange(
         "Nueva aplicación: $packageName"
     )
 
-    val protectedApps =
-        preferencesManager.getProtectedApps()
-
     if (
-        !protectedApps.contains(
-            packageName
-        )
-    ) {
-        return
-    }
+    !appBlocker.isProtectedApp(
+        packageName
+    )
+) {
+    return
+}
 
     val lastUnlockTime =
         preferencesManager.getAppUnlockTime(
@@ -152,38 +154,57 @@ private fun handlePackageChange(
 
     }
 
-    if (
-        isLaunchingLock
-    ) {
-        return
-    }
-
-    isLaunchingLock = true
-
     preferencesManager
-        .saveLastProtectedApp(
-            packageName
-        )
+    .saveLastProtectedApp(
+        packageName
+    )
+
+if (
+    isLaunchingLock
+) {
 
     Log.d(
         "ShieldLock",
-        "APP PROTEGIDA DETECTADA: $packageName"
+        "Actualizando app protegida: $packageName"
     )
 
-    val intent = Intent(
-        applicationContext,
-        LockActivity::class.java
-    )
+    return
+}
 
-    intent.addFlags(
-        Intent.FLAG_ACTIVITY_NEW_TASK
-    )
+isLaunchingLock = true
 
-    intent.addFlags(
-        Intent.FLAG_ACTIVITY_SINGLE_TOP
-    )
+Log.d(
+    "ShieldLock",
+    "APP PROTEGIDA DETECTADA: $packageName"
+)
+    appLauncher.launchLock(this)
 
-    startActivity(intent)
+}
+
+private fun isSystemPackage(
+    packageName: String
+): Boolean {
+
+    return packageName ==
+            "com.sec.android.app.launcher"
+
+            ||
+
+            packageName ==
+            "com.android.systemui"
+
+}
+
+private fun resetState() {
+
+    lastPackage = ""
+
+    isLaunchingLock = false
+
+    Log.d(
+        "ShieldLock",
+        "Usuario salió de la aplicación"
+    )
 
 }
 

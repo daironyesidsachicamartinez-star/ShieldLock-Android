@@ -59,9 +59,11 @@ fun LockScreen(
 
     val packageManager = context.packageManager
 
-    val packageName = remember {
+    var packageName by remember {
+    mutableStateOf(
         preferencesManager.getLastProtectedApp()
-    }
+    )
+}
 
     var appName by remember {
         mutableStateOf("Aplicación protegida")
@@ -72,6 +74,17 @@ fun LockScreen(
     }
 
     LaunchedEffect(Unit) {
+
+    while (true) {
+
+        val currentPackage =
+            preferencesManager.getLastProtectedApp()
+
+        if (currentPackage != packageName) {
+
+            packageName = currentPackage
+
+        }
 
         try {
 
@@ -87,13 +100,18 @@ fun LockScreen(
                     .toString()
 
             appIcon =
-                packageManager.getApplicationIcon(info)
+                packageManager
+                    .getApplicationIcon(info)
 
         } catch (_: Exception) {
 
         }
 
+        delay(250)
+
     }
+
+}
 
     var enteredPin by remember {
         mutableStateOf("")

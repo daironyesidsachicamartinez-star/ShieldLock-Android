@@ -1,208 +1,163 @@
 package com.shiekdlock.app.screens
 
-import android.content.pm.PackageManager
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
-import com.shiekdlock.app.data.PreferencesManager
-
-import com.shiekdlock.app.model.AppUiState
-
-import android.content.Intent
-
-import androidx.compose.material3.OutlinedTextField
-
-import androidx.compose.runtime.LaunchedEffect
-
-import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.unit.dp
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import androidx.compose.foundation.layout.size
-
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.systemBarsPadding
+
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-
-import com.shiekdlock.app.ui.components.AppItem
-
-import com.shiekdlock.app.ui.components.ShieldHeader
-
-import com.shiekdlock.app.ui.components.SearchBar
-
-import com.shiekdlock.app.ui.components.ShieldButton
-
-import com.shiekdlock.app.ui.components.SectionTitle
-
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import com.shiekdlock.app.data.AppRepository
-
+import com.shiekdlock.app.data.PreferencesManager
+import com.shiekdlock.app.model.AppUiState
+import com.shiekdlock.app.ui.components.AppItem
+import com.shiekdlock.app.ui.components.SearchBar
+import com.shiekdlock.app.ui.components.SectionTitle
+import com.shiekdlock.app.ui.components.ShieldButton
+import com.shiekdlock.app.ui.components.ShieldHeader
 import com.shiekdlock.app.viewmodel.HomeViewModel
-
-fun drawableToBitmap(
-    drawable: android.graphics.drawable.Drawable
-): Bitmap {
-
-    val bitmap = Bitmap.createBitmap(
-        drawable.intrinsicWidth,
-        drawable.intrinsicHeight,
-        Bitmap.Config.ARGB_8888
-    )
-
-    val canvas = Canvas(bitmap)
-
-    drawable.setBounds(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    )
-
-    drawable.draw(canvas)
-
-    return bitmap
-}
 
 @Composable
 fun HomeScreen(
     onOpenPinScreen: () -> Unit
 ) {
-
     val context = LocalContext.current
-
-    val viewModel = remember {
-    HomeViewModel()
-}
 
     val preferencesManager = remember {
         PreferencesManager(context)
     }
 
     val repository = remember {
-    AppRepository(context)
-}
+        AppRepository(context)
+    }
+
+    val viewModel = remember {
+        HomeViewModel()
+    }
 
     var apps by remember {
-    mutableStateOf(listOf<AppUiState>())
-}
-
-    var searchText by remember {
-    mutableStateOf("")
-}
+        mutableStateOf(emptyList<AppUiState>())
+    }
 
     var protectedPackages by remember {
-        mutableStateOf(
-            preferencesManager.getProtectedApps()
-        )
+        mutableStateOf(preferencesManager.getProtectedApps())
     }
 
     LaunchedEffect(protectedPackages) {
-
-    apps = repository.loadApps(
-        protectedPackages
-    )
-
-}
-    Column(
-    modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)
-) {
-
-       ShieldHeader(
-
-    protectedApps =
-        protectedPackages.size
-
-)
-
-Spacer(
-    modifier = Modifier.height(16.dp)
-)
-
-        
-
-        
-
-        ShieldButton(
-
-    text = "Configurar PIN",
-
-    onClick = {
-
-        onOpenPinScreen()
-
+        apps = repository.loadApps(protectedPackages)
     }
 
-)
-
-SearchBar(
-
-    value = searchText,
-
-    onValueChange = {
-
-        searchText = it
-
-    }
-
-)
-
-SectionTitle(
-
-    title = "Aplicaciones"
-
-)
-
-
-        LazyColumn {
-
-    items(
-
-        apps.filter {
-
-            it.name.contains(
-                searchText,
-                ignoreCase = true
-            )
-
-        }
-
-    ) { app ->
-
-        AppItem(
-            app = app,
-            checked = app.protected,
-            onCheckedChange = { checked ->
-
-                protectedPackages =
-                    if (checked) {
-                        protectedPackages + app.packageName
-                    } else {
-                        protectedPackages - app.packageName
-                    }
-
-                preferencesManager.saveProtectedApps(
-                    protectedPackages
-                )
-            }
+    val filteredApps = apps.filter {
+        it.name.contains(
+            viewModel.searchText,
+            ignoreCase = true
         )
     }
+
+    val protectedApps = filteredApps.filter { it.protected }
+    val otherApps = filteredApps.filterNot { it.protected }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .padding(16.dp)
+    ) {
+        ShieldHeader(
+            protectedApps = protectedPackages.size
+        )
+
+        Spacer(
+            modifier = Modifier.height(12.dp)
+        )
+
+        ShieldButton(
+            text = "Configurar PIN",
+            onClick = onOpenPinScreen
+        )
+
+        SearchBar(
+            value = viewModel.searchText,
+            onValueChange = viewModel::onSearchChange
+        )
+
+        SectionTitle(
+            title = "Aplicaciones protegidas"
+        )
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(
+                protectedApps,
+                key = { it.packageName }
+            ) { app ->
+                AppItem(
+                    app = app,
+                    checked = app.protected,
+                    onCheckedChange = { checked ->
+
+                        protectedPackages =
+                            if (checked) {
+                                protectedPackages + app.packageName
+                            } else {
+                                protectedPackages - app.packageName
+                            }
+
+                        preferencesManager.saveProtectedApps(
+                            protectedPackages
+                        )
+                    }
+                )
+            }
+
+            if (otherApps.isNotEmpty()) {
+                item {
+                    Spacer(
+                        modifier = Modifier.height(6.dp)
+                    )
+
+                    SectionTitle(
+                        title = "Otras aplicaciones"
+                    )
+                }
+            }
+
+            items(
+                otherApps,
+                key = { it.packageName }
+            ) { app ->
+                AppItem(
+                    app = app,
+                    checked = app.protected,
+                    onCheckedChange = { checked ->
+
+                        protectedPackages =
+                            if (checked) {
+                                protectedPackages + app.packageName
+                            } else {
+                                protectedPackages - app.packageName
+                            }
+
+                        preferencesManager.saveProtectedApps(
+                            protectedPackages
+                        )
+                    }
+                )
+            }
         }
-}
+    }
 }

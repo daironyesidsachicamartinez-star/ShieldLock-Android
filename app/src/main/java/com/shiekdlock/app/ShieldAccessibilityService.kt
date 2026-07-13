@@ -4,104 +4,191 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-
 import com.shiekdlock.app.data.PreferencesManager
 
 class ShieldAccessibilityService :
     AccessibilityService() {
 
-    private var lastPackageName = ""
+    private lateinit var preferencesManager:
+        PreferencesManager
+
+    /*
+     * Última aplicación detectada.
+     */
+    private var lastPackage = ""
+
+    /*
+     * Evita abrir dos LockActivity
+     * al mismo tiempo.
+     */
+    private var isLaunchingLock = false
 
     override fun onServiceConnected() {
+
+        super.onServiceConnected()
+
+        preferencesManager =
+            PreferencesManager(
+                applicationContext
+            )
 
         Log.d(
             "ShieldLock",
             "Servicio iniciado"
         )
+
     }
 
     override fun onAccessibilityEvent(
         event: AccessibilityEvent?
     ) {
 
-        val packageName =
-            event?.packageName?.toString()
-                ?: return
-
-       if (packageName == lastPackageName) {
-    return
-}
-
-lastPackageName = packageName
-
-        Log.d(
-            "ShieldLock",
-            "App abierta: $packageName"
-        )
-
-        val preferencesManager =
-            PreferencesManager(
-                applicationContext
-            )
-
-        val protectedApps =
-            preferencesManager.getProtectedApps()
+        if (
+            event == null
+        ) {
+            return
+        }
 
         if (
-            protectedApps.contains(
-                packageName
-            )
+            event.eventType !=
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
         ) {
+            return
+        }
 
-            val lastUnlockTime =
-    preferencesManager
-        .getAppUnlockTime(
+        val packageName =
+            event.packageName?.toString()
+                ?: return
+
+        handlePackageChange(
             packageName
         )
 
-            val currentTime =
-                System.currentTimeMillis()
+    }
 
-            val oneMinute =
-                60_000L
+private fun handlePackageChange(
+    packageName: String
+) {
 
-            if (
-                currentTime - lastUnlockTime
-                < oneMinute
-            ) {
+    if (
+        packageName ==
+        applicationContext.packageName
+    ) {
+        return
+    }
 
-                Log.d(
-                    "ShieldLock",
-                    "App desbloqueada recientemente"
-                )
+    if (
 
-                return
-            }
+        packageName ==
+        "com.sec.android.app.launcher"
 
-            Log.d(
-                "ShieldLock",
-                "APP PROTEGIDA DETECTADA: $packageName"
-            )
+        ||
 
-            preferencesManager
-    .saveLastProtectedApp(
-        packageName
+        packageName ==
+        "com.android.systemui"
+
+    ) {
+
+        lastPackage = ""
+
+        isLaunchingLock = false
+
+        Log.d(
+            "ShieldLock",
+            "Usuario salió de la aplicación"
+        )
+
+        return
+
+    }
+
+    if (
+        packageName == lastPackage
+    ) {
+        return
+    }
+
+    lastPackage = packageName
+
+    Log.d(
+        "ShieldLock",
+        "Nueva aplicación: $packageName"
     )
 
-            val intent = Intent(
-                applicationContext,
-                LockActivity::class.java
-            )
+    val protectedApps =
+        preferencesManager.getProtectedApps()
 
-            intent.addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK
-            )
-
-            startActivity(intent)
-        }
+    if (
+        !protectedApps.contains(
+            packageName
+        )
+    ) {
+        return
     }
 
-    override fun onInterrupt() {
+    val lastUnlockTime =
+        preferencesManager.getAppUnlockTime(
+            packageName
+        )
+
+    val currentTime =
+        System.currentTimeMillis()
+
+    val unlockDuration =
+        preferencesManager.getUnlockDuration()
+
+    if (
+        currentTime -
+        lastUnlockTime <
+        unlockDuration
+    ) {
+
+        Log.d(
+            "ShieldLock",
+            "App desbloqueada recientemente"
+        )
+
+        return
 
     }
+
+    if (
+        isLaunchingLock
+    ) {
+        return
+    }
+
+    isLaunchingLock = true
+
+    preferencesManager
+        .saveLastProtectedApp(
+            packageName
+        )
+
+    Log.d(
+        "ShieldLock",
+        "APP PROTEGIDA DETECTADA: $packageName"
+    )
+
+    val intent = Intent(
+        applicationContext,
+        LockActivity::class.java
+    )
+
+    intent.addFlags(
+        Intent.FLAG_ACTIVITY_NEW_TASK
+    )
+
+    intent.addFlags(
+        Intent.FLAG_ACTIVITY_SINGLE_TOP
+    )
+
+    startActivity(intent)
+
 }
+
+override fun onInterrupt() {
+
+}
+
+    }

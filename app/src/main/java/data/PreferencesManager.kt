@@ -22,14 +22,19 @@ class PreferencesManager(
                 apps
             )
             .apply()
+
     }
 
     fun getProtectedApps(): Set<String> {
 
-        return prefs.getStringSet(
-            "protected_apps",
-            emptySet()
-        ) ?: emptySet()
+        return prefs
+            .getStringSet(
+                "protected_apps",
+                emptySet()
+            )
+            ?.toSet()
+            ?: emptySet()
+
     }
 
     fun saveLastProtectedApp(
@@ -42,6 +47,7 @@ class PreferencesManager(
                 packageName
             )
             .apply()
+
     }
 
     fun getLastProtectedApp(): String {
@@ -50,6 +56,7 @@ class PreferencesManager(
             "last_protected_app",
             ""
         ) ?: ""
+
     }
 
     fun saveAppUnlockTime(
@@ -63,6 +70,7 @@ class PreferencesManager(
                 time
             )
             .apply()
+
     }
 
     fun getAppUnlockTime(
@@ -73,6 +81,52 @@ class PreferencesManager(
             "unlock_$packageName",
             0L
         )
+
     }
+
+    fun setLockScreenShowing(
+        showing: Boolean
+    ) {
+
+        prefs.edit()
+            .putBoolean(
+                "lock_showing",
+                showing
+            )
+            .apply()
+
+    }
+
+    fun isLockScreenShowing(): Boolean {
+
+        return prefs.getBoolean(
+            "lock_showing",
+            false
+        )
+
+    }
+
+    fun saveUnlockDuration(
+        duration: Long
+    ) {
+
+        prefs.edit()
+            .putLong(
+                "unlock_duration",
+                duration
+            )
+            .apply()
+
+    }
+
+    fun getUnlockDuration(): Long {
+
+        return prefs.getLong(
+            "unlock_duration",
+            60_000L
+        )
+
+    }
+
 }
 

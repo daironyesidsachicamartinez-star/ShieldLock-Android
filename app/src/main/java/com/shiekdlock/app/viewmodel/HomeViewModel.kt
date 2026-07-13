@@ -12,5 +12,4 @@ class HomeViewModel {
     fun onSearchChange(text: String) {
         searchText = text
     }
-
 }
